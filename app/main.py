@@ -53,7 +53,7 @@ async def lifespan(_app):
     global pool
     # prepare_threshold=None keeps the Supabase transaction pooler (port 6543) happy.
     # timeout=5: a bad DATABASE_URL fails /healthz fast instead of hanging 30s.
-    pool = ConnectionPool(os.environ["DATABASE_URL"], min_size=1, max_size=10, timeout=5,
+    pool = ConnectionPool(os.environ["DATABASE_URL"], min_size=1, max_size=20, timeout=5,
                           kwargs={"row_factory": dict_row, "prepare_threshold": None})
     yield
     pool.close()
