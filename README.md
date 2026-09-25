@@ -33,8 +33,11 @@ Rules that protect the results:
 1. **Supabase**: SQL editor, run `supabase/schema.sql`. (If you ran the earlier version,
    run `supabase/migrations/002_rounds.sql` instead.)
 2. **Render**: New, Blueprint, point at this repo (uses `render.yaml`). Set:
-   - `DATABASE_URL`: Supabase, Connect, Transaction pooler string (port 6543)
-   - `SUPABASE_URL`, `SUPABASE_ANON_KEY`: Supabase, Project Settings, API
+   - `DATABASE_URL`: Supabase, Connect, Transaction pooler, **Shared** (IPv4; the Dedicated
+    pooler is IPv6-only and unreachable from Render). Host `aws-0-<region>.pooler.supabase.com`,
+    user `postgres.<ref>`, port 6543, add `?sslmode=require`
+   - `SUPABASE_URL`, `SUPABASE_ANON_KEY`: Supabase, Project Settings, API Keys. Use the
+    **publishable** key (`sb_publishable_...`); it is sent to browsers. Never the secret key.
    - `HOST_PIN`: your host PIN
 3. Open `/host`, plan the tasting, and print or show the QR code at the table.
 

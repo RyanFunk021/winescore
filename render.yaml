@@ -3,6 +3,7 @@ services:
     name: wine-tasting
     runtime: python
     plan: starter
+    region: ohio               # nearest Render region to Supabase ca-central-1; fixed at creation
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /healthz

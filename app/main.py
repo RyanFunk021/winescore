@@ -14,6 +14,27 @@ from datetime import date
 from pathlib import Path
 from typing import Optional
 
+
+def load_local_env(env_file: Path | str | None = None):
+    """Load environment variables from a project-local env file for local development."""
+    project_root = Path(__file__).resolve().parent.parent
+    target = Path(env_file) if env_file else project_root / ".env.local"
+
+    if not target.exists():
+        return
+
+    for line in target.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"')
+        os.environ.setdefault(key, value)
+
+
+load_local_env()
+
 import pandas as pd
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
@@ -31,7 +52,8 @@ pool: ConnectionPool | None = None
 async def lifespan(_app):
     global pool
     # prepare_threshold=None keeps the Supabase transaction pooler (port 6543) happy.
-    pool = ConnectionPool(os.environ["DATABASE_URL"], min_size=1, max_size=5,
+    # timeout=5: a bad DATABASE_URL fails /healthz fast instead of hanging 30s.
+    pool = ConnectionPool(os.environ["DATABASE_URL"], min_size=1, max_size=10, timeout=5,
                           kwargs={"row_factory": dict_row, "prepare_threshold": None})
     yield
     pool.close()
@@ -135,14 +157,18 @@ def all_rounds(event_id: str, member_id: str | None = None):
 
 # ---------- pages ----------
 
+# no-cache: browsers revalidate, so a deploy reaches phones on the next load.
+NO_CACHE = {"Cache-Control": "no-cache"}
+
+
 @app.get("/")
 def guest_page():
-    return FileResponse(STATIC / "guest.html")
+    return FileResponse(STATIC / "guest.html", headers=NO_CACHE)
 
 
 @app.get("/host")
 def host_page():
-    return FileResponse(STATIC / "host.html")
+    return FileResponse(STATIC / "host.html", headers=NO_CACHE)
 
 
 @app.get("/healthz")

@@ -192,7 +192,7 @@ async function join(code) {
   } catch (e) { $("join-err").textContent = e.message; show("join"); }
 }
 $("join-btn").onclick = () => $("code").value.trim() && join($("code").value.trim());
-$("code").onkeydown = e => e.key === "Enter" && $("join-btn").click();
+$("code").onkeydown = e => { if (e.key === "Enter") $("join-btn").click(); };
 
 function pickName() {
   const box = $("names"); box.innerHTML = "";
@@ -218,12 +218,16 @@ async function enter() {
 
 // ---------- live state ----------
 let pollTimer = null;
-function watch() {
+async function poll() {
   const code = store.get("wt_code");
+  if (!code) return;
+  try { const d = await api("/api/join/" + encodeURIComponent(code)); onState(d.state); } catch {}
+}
+// A locked phone misses Realtime pushes and the poll timer; catch up on wake.
+document.addEventListener("visibilitychange", () => { if (!document.hidden && pollTimer) poll(); });
+function watch() {
   clearInterval(pollTimer);
-  pollTimer = setInterval(async () => {       // fallback if Realtime drops
-    try { const d = await api("/api/join/" + encodeURIComponent(code)); onState(d.state); } catch {}
-  }, 15000);
+  pollTimer = setInterval(poll, 15000);       // fallback if Realtime drops
   api("/api/config").then(cfg => {
     if (!cfg.supabase_url || !window.supabase) return;
     const sb = window.supabase.createClient(cfg.supabase_url, cfg.supabase_anon_key);

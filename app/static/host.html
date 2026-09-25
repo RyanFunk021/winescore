@@ -272,7 +272,7 @@ $("pin-btn").onclick = async () => {
   try { await api("/api/host/check"); store.set("wt_host_pin", H.pin); loadEvents(); }
   catch (e) { $("pin-err").textContent = e.message; }
 };
-$("pin").onkeydown = e => e.key === "Enter" && $("pin-btn").click();
+$("pin").onkeydown = e => { if (e.key === "Enter") $("pin-btn").click(); };
 
 // ---------- events ----------
 const EVENT_FIELDS = () => [
@@ -348,10 +348,14 @@ async function act(action) {
   try { await send(`/api/host/events/${H.ev.id}/action`, "POST", { action }); await refresh(H.ev.id); renderRun(); }
   catch (e) { $("run-err").textContent = e.message; }
 }
+let stepping = false;   // a double tap would otherwise advance two steps
 async function stepReveal(dir) {
+  if (stepping) return;
+  stepping = true;
   $("run-err").textContent = "";
   try { await api(`/api/host/events/${H.ev.id}/reveal/${dir}`, { method: "POST" }); await refresh(H.ev.id); renderRun(); }
   catch (e) { $("run-err").textContent = e.message; }
+  finally { stepping = false; }
 }
 async function renderRun() {
   const p = $("run-panel"), ev = H.ev, r = ev.current_round, n = rounds(), rw = roundWines(r);
