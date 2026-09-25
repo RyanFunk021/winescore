@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: wine-tasting
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /healthz
+    envVars:
+      - key: DATABASE_URL        # Supabase > Project Settings > Database > connection string (pooler, port 6543)
+        sync: false
+      - key: SUPABASE_URL        # https://<project>.supabase.co
+        sync: false
+      - key: SUPABASE_ANON_KEY   # public anon key, only used for the live event_state feed
+        sync: false
+      - key: HOST_PIN            # your host console PIN
+        sync: false

@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tasting</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Young+Serif&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+  :root {
+    --bg: #F2EDEF; --card: #FBF8F9; --ink: #2B1A23; --muted: #6D5B65;
+    --garnet: #7B1F3C; --garnet-soft: #EBD5DC; --sage: #5E6E52; --line: #D8CCD2;
+    --serif: "Young Serif", Georgia, serif;
+    --sans: "Atkinson Hyperlegible", system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1E1419; --card: #2A1D24; --ink: #F1E6EA; --muted: #B7A2AC;
+            --garnet: #D9738F; --garnet-soft: #4A2632; --sage: #A5B895; --line: #43323B; }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans);
+               font-size: 17px; line-height: 1.45; -webkit-text-size-adjust: 100%; }
+  body { padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+  main { max-width: 520px; margin: 0 auto; padding: 20px 18px 96px; }
+  h1, h2 { font-family: var(--serif); font-weight: 400; margin: 0 0 6px; line-height: 1.15; }
+  h1 { font-size: 30px; } h2 { font-size: 22px; }
+  p { margin: 0 0 14px; }
+  .muted { color: var(--muted); }
+  .hidden { display: none !important; }
+  button, input, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  a { color: var(--garnet); }
+  :focus-visible { outline: 3px solid var(--garnet); outline-offset: 2px; }
+  .btn { display: block; width: 100%; padding: 15px; border: 0; border-radius: 12px;
+         background: var(--garnet); color: #fff; font-weight: 700; font-size: 18px; }
+  .btn.quiet { background: transparent; color: var(--garnet); border: 1.5px solid var(--garnet); }
+  .btn:disabled { opacity: .5; }
+  input[type=text], input[type=number], textarea {
+    width: 100%; padding: 13px 14px; border: 1.5px solid var(--line); border-radius: 10px;
+    background: var(--card); font-size: 18px; }
+  textarea { min-height: 72px; resize: vertical; }
+  label.field { display: block; font-weight: 700; margin: 18px 0 6px; }
+  .error { color: var(--garnet); font-weight: 700; margin-top: 10px; min-height: 1em; }
+
+  /* who are you */
+  .names { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 22px; }
+  .names button { padding: 10px 14px; border-radius: 999px; border: 1.5px solid var(--line);
+                  background: var(--card); }
+
+  /* flight */
+  .status { padding: 12px 14px; border-radius: 12px; background: var(--garnet-soft); margin: 14px 0 18px; }
+  .pours { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .pour { aspect-ratio: 1 / 1.1; border: 1.5px solid var(--line); border-radius: 16px; background: var(--card);
+          display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+  .pour .n { font-family: var(--serif); font-size: 44px; line-height: 1; }
+  .pour .t { font-size: 14px; color: var(--muted); }
+  .pour.done { border-color: var(--sage); }
+  .pour.done .t { color: var(--sage); font-weight: 700; }
+
+  /* score card */
+  .card-head { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
+  .big-n { font-family: var(--serif); font-size: 76px; line-height: .9; }
+  .glass { width: 54px; flex: none; margin-left: auto; }
+  .glass .fill { transition: transform .35s ease; transform-origin: 50% 100%; }
+  .total { font-family: var(--serif); font-size: 26px; text-align: right; }
+  .cat { margin-top: 18px; }
+  .cat-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .cat-head b { font-size: 18px; }
+  .cat-head span { color: var(--muted); font-size: 15px; }
+  .chips { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .chips button { padding: 11px 0; border-radius: 9px; border: 1.5px solid var(--line);
+                  background: var(--card); font-size: 16px; font-variant-numeric: tabular-nums; }
+  .chips button[aria-pressed=true] { background: var(--garnet); border-color: var(--garnet); color: #fff; font-weight: 700; }
+  .savebar { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
+             background: var(--bg); border-top: 1px solid var(--line); }
+  .savebar .inner { max-width: 520px; margin: 0 auto; display: flex; gap: 10px; }
+  .savebar .btn.quiet { width: 38%; }
+
+  /* reveal */
+  .step { background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 18px; margin-bottom: 14px; }
+  .step.current { border-color: var(--garnet); }
+  .step.current.enter { animation: rise .6s ease-out; }
+  .rank { font-family: var(--serif); font-size: 18px; color: var(--garnet); }
+  .wine-name { font-family: var(--serif); font-size: 26px; margin: 2px 0 4px; }
+  .row { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 10px; }
+  .row div { min-width: 70px; }
+  .row small { display: block; color: var(--muted); font-size: 14px; }
+  .row strong { font-family: var(--serif); font-weight: 400; font-size: 24px; }
+  .round-head { font-family: var(--serif); font-size: 20px; margin: 22px 0 10px; color: var(--muted); }
+  .award-title { font-family: var(--serif); font-size: 24px; margin-bottom: 2px; }
+  .award-who { font-weight: 700; font-size: 20px; }
+  .award-who.you { color: var(--garnet); }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .step.current.enter { animation: none; } .glass .fill { transition: none; } }
+</style>
+</head>
+<body>
+<main>
+
+  <section id="v-join">
+    <h1>Welcome to the tasting</h1>
+    <p class="muted">Enter the code from your host.</p>
+    <input id="code" type="text" autocomplete="off" autocapitalize="characters" placeholder="Tasting code">
+    <div class="error" id="join-err"></div>
+    <button class="btn" id="join-btn">Join the tasting</button>
+  </section>
+
+  <section id="v-who" class="hidden">
+    <h1>Who's tasting?</h1>
+    <p class="muted">Pick your name. You'll keep it every month.</p>
+    <div class="names" id="names"></div>
+    <label class="field" for="new-name">New to the group?</label>
+    <input id="new-name" type="text" autocomplete="name" placeholder="Your name">
+    <div class="error" id="who-err"></div>
+    <button class="btn quiet" id="new-btn">Add me</button>
+  </section>
+
+  <section id="v-flight" class="hidden">
+    <h1 id="ev-name"></h1>
+    <p class="muted" id="ev-sub"></p>
+    <div class="status" id="status-line"></div>
+    <div class="pours" id="pours"></div>
+    <button class="btn quiet hidden" id="earlier-btn" style="margin-top:18px">See earlier results</button>
+    <p class="muted" style="margin-top:22px">Tasting as <b id="me-name"></b>. <a href="#" id="switch">Not you?</a></p>
+  </section>
+
+  <section id="v-score" class="hidden">
+    <div class="card-head">
+      <div><div class="muted">Wine</div><div class="big-n" id="s-n"></div></div>
+      <svg class="glass" viewBox="0 0 54 90" aria-hidden="true">
+        <defs><clipPath id="bowl"><path d="M6 4 H48 C48 30 42 44 27 46 C12 44 6 30 6 4 Z"/></clipPath></defs>
+        <g clip-path="url(#bowl)"><rect class="fill" id="fill" x="0" y="4" width="54" height="42" fill="var(--garnet)"/></g>
+        <path d="M6 4 H48 C48 30 42 44 27 46 C12 44 6 30 6 4 Z M27 46 V80 M14 84 H40" fill="none"
+              stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="total"><span id="s-total">0</span> <span class="muted">of 20</span></div>
+    <div id="cats"></div>
+    <label class="field" for="guess">Your price guess (optional)</label>
+    <input id="guess" type="number" inputmode="decimal" min="0" step="1" placeholder="$">
+    <label class="field" for="note">Notes (optional)</label>
+    <textarea id="note" maxlength="500" placeholder="Cherry, forest floor, long finish…"></textarea>
+    <div class="error" id="score-err"></div>
+    <div class="savebar"><div class="inner">
+      <button class="btn quiet" id="back-btn">Back</button>
+      <button class="btn" id="save-btn">Save score</button>
+    </div></div>
+  </section>
+
+  <section id="v-reveal" class="hidden">
+    <h1>The reveal</h1>
+    <p class="muted" id="reveal-sub">Watch your host. Results appear here as they're announced.</p>
+    <div id="steps"></div>
+    <button class="btn quiet hidden" id="to-flight" style="margin-top:6px">Back to scoring</button>
+  </section>
+
+</main>
+<script>
+const CAT_LABELS = { appearance: "Appearance", aroma: "Aroma", taste: "Taste", aftertaste: "Aftertaste", overall: "Overall impression" };
+const $ = id => document.getElementById(id);
+const S = { event: null, wines: [], members: [], state: null, max: {}, me: null, mine: {}, wine: null, draft: {}, shownSteps: 0 };
+
+function show(view) {
+  for (const v of ["join", "who", "flight", "score", "reveal"]) $("v-" + v).classList.toggle("hidden", v !== view);
+  window.scrollTo(0, 0);
+}
+async function api(path, opts = {}) {
+  const res = await fetch(path, { headers: { "Content-Type": "application/json" }, ...opts });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(typeof body.detail === "string" ? body.detail : "Something went wrong. Try again.");
+  return body;
+}
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  del(k) { try { localStorage.removeItem(k); } catch {} },
+};
+
+// ---------- join ----------
+async function join(code) {
+  $("join-err").textContent = "";
+  try {
+    const d = await api("/api/join/" + encodeURIComponent(code));
+    Object.assign(S, { event: d.event, wines: d.wines, members: d.members, state: d.state, max: d.max });
+    store.set("wt_code", code);
+    const me = store.get("wt_member");
+    S.me = me && d.members.find(m => m.id === me.id) || null;
+    S.me ? enter() : pickName();
+    watch();
+  } catch (e) { $("join-err").textContent = e.message; show("join"); }
+}
+$("join-btn").onclick = () => $("code").value.trim() && join($("code").value.trim());
+$("code").onkeydown = e => e.key === "Enter" && $("join-btn").click();
+
+function pickName() {
+  const box = $("names"); box.innerHTML = "";
+  for (const m of S.members) {
+    const b = document.createElement("button"); b.textContent = m.name;
+    b.onclick = () => choose(m); box.appendChild(b);
+  }
+  show("who");
+}
+async function choose(m) { S.me = m; store.set("wt_member", m); enter(); }
+$("new-btn").onclick = async () => {
+  const name = $("new-name").value.trim(); if (!name) return;
+  try { choose(await api("/api/members", { method: "POST", body: JSON.stringify({ name }) })); }
+  catch (e) { $("who-err").textContent = e.message; }
+};
+$("switch").onclick = e => { e.preventDefault(); store.del("wt_member"); S.me = null; pickName(); };
+
+async function enter() {
+  const rows = await api(`/api/events/${S.event.id}/members/${S.me.id}/scores`);
+  S.mine = Object.fromEntries(rows.map(r => [r.wine_id, r]));
+  route();
+}
+
+// ---------- live state ----------
+let pollTimer = null;
+function watch() {
+  const code = store.get("wt_code");
+  clearInterval(pollTimer);
+  pollTimer = setInterval(async () => {       // fallback if Realtime drops
+    try { const d = await api("/api/join/" + encodeURIComponent(code)); onState(d.state); } catch {}
+  }, 15000);
+  api("/api/config").then(cfg => {
+    if (!cfg.supabase_url || !window.supabase) return;
+    const sb = window.supabase.createClient(cfg.supabase_url, cfg.supabase_anon_key);
+    sb.channel("state-" + S.event.id)
+      .on("postgres_changes", { event: "*", schema: "public", table: "event_state", filter: "event_id=eq." + S.event.id },
+          p => onState(p.new))
+      .subscribe();
+  }).catch(() => {});
+}
+async function onState(st) {
+  if (!st) return;
+  const prev = S.state || {};
+  S.state = st;
+  if (!S.me) return;
+  if (prev.current_round !== st.current_round || prev.round_count !== st.round_count) {
+    try { const d = await api("/api/join/" + encodeURIComponent(store.get("wt_code"))); S.wines = d.wines; S.event = d.event; } catch {}
+  }
+  const scoring = !$("v-score").classList.contains("hidden");
+  if (st.status === "revealing" || st.status === "done") {
+    if (prev.reveal_step !== st.reveal_step || prev.status !== st.status || $("v-reveal").classList.contains("hidden")) loadReveal();
+  } else if (!scoring && (prev.status !== st.status || prev.current_round !== st.current_round || !$("v-flight").classList.contains("hidden"))) {
+    renderFlight();
+  }
+}
+function route() {
+  const st = S.state && S.state.status;
+  if (st === "revealing" || st === "done") loadReveal(); else renderFlight();
+}
+
+// ---------- flight ----------
+function renderFlight() {
+  $("ev-name").textContent = S.event.name;
+  $("ev-sub").textContent = [S.event.theme, S.event.location].filter(Boolean).join(", ");
+  $("me-name").textContent = S.me.name;
+  const st = S.state || {};
+  const rnd = st.current_round || 1, rounds = st.round_count || 1;
+  const roundWines = S.wines.filter(w => (w.round_no || 1) === rnd);
+  const lead = rounds > 1 ? `Round ${rnd} of ${rounds}. ` : "";
+  const lines = {
+    setup: "The host is still setting up. Scoring opens soon.",
+    open: lead + `You've scored ${roundWines.filter(w => S.mine[w.id]).length} of ${roundWines.length}. ` +
+          `${st.finished || 0} of ${st.tasters || 0} tasters are finished.`,
+    locked: lead + "Scoring is closed. The reveal is coming.",
+  };
+  $("status-line").textContent = lines[st.status] || "";
+  const box = $("pours"); box.innerHTML = "";
+  for (const w of roundWines) {
+    const s = S.mine[w.id];
+    const b = document.createElement("button");
+    b.className = "pour" + (s ? " done" : "");
+    b.innerHTML = `<span class="n">${w.pour_no}</span><span class="t">${s ? Number(s.total) + " pts" : "Not scored"}</span>`;
+    b.setAttribute("aria-label", `Wine ${w.pour_no}, ${s ? "scored " + Number(s.total) : "not scored"}`);
+    b.disabled = st.status !== "open";
+    b.onclick = () => openScore(w);
+    box.appendChild(b);
+  }
+  $("earlier-btn").classList.toggle("hidden", rnd <= 1);
+  show("flight");
+}
+
+// ---------- score card ----------
+function openScore(w) {
+  S.wine = w;
+  const prev = S.mine[w.id] || {};
+  S.draft = {};
+  for (const c in CAT_LABELS) S.draft[c] = prev[c] != null ? Number(prev[c]) : null;
+  $("s-n").textContent = w.pour_no;
+  $("guess").value = prev.price_guess != null ? Number(prev.price_guess) : "";
+  $("note").value = prev.note || "";
+  $("score-err").textContent = "";
+  const cats = $("cats"); cats.innerHTML = "";
+  for (const c in CAT_LABELS) {
+    const max = S.max[c];
+    const wrap = document.createElement("div"); wrap.className = "cat";
+    wrap.innerHTML = `<div class="cat-head"><b>${CAT_LABELS[c]}</b><span>out of ${max}</span></div><div class="chips" role="group" aria-label="${CAT_LABELS[c]}"></div>`;
+    const chips = wrap.querySelector(".chips");
+    for (let v = 0; v <= max; v += 0.5) {
+      const b = document.createElement("button");
+      b.textContent = v % 1 ? (Math.floor(v) || "") + "½" : v;
+      b.setAttribute("aria-pressed", S.draft[c] === v);
+      b.onclick = () => { S.draft[c] = v; chips.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b)); updateTotal(); };
+      chips.appendChild(b);
+    }
+    cats.appendChild(wrap);
+  }
+  updateTotal();
+  show("score");
+}
+function updateTotal() {
+  const t = Object.values(S.draft).reduce((a, v) => a + (v || 0), 0);
+  $("s-total").textContent = t % 1 ? t.toFixed(1) : t;
+  $("fill").style.transform = `translateY(${42 * (1 - t / 20)}px)`;
+}
+$("back-btn").onclick = renderFlight;
+$("earlier-btn").onclick = () => loadReveal();
+$("to-flight").onclick = renderFlight;
+$("save-btn").onclick = async () => {
+  const missing = Object.keys(CAT_LABELS).filter(c => S.draft[c] == null);
+  if (missing.length) { $("score-err").textContent = "Score " + missing.map(c => CAT_LABELS[c].toLowerCase()).join(", ") + " to save."; return; }
+  $("save-btn").disabled = true;
+  try {
+    const guess = $("guess").value === "" ? null : Number($("guess").value);
+    const body = { event_id: S.event.id, wine_id: S.wine.id, member_id: S.me.id, ...S.draft, price_guess: guess, note: $("note").value.trim() || null };
+    const r = await api("/api/scores", { method: "PUT", body: JSON.stringify(body) });
+    S.mine[S.wine.id] = { ...body, total: r.total };
+    try { S.state = (await api("/api/join/" + encodeURIComponent(store.get("wt_code")))).state; } catch {}
+    renderFlight();
+  } catch (e) { $("score-err").textContent = e.message; }
+  finally { $("save-btn").disabled = false; }
+};
+
+// ---------- reveal ----------
+async function loadReveal() {
+  const d = await api(`/api/events/${S.event.id}/reveal?member_id=${S.me.id}`);
+  const box = $("steps");
+  const live = d.status === "revealing";
+  const cur = d.rounds.find(r => r.round === d.current_round);
+  const shownNow = cur ? cur.steps.length : 0;
+  const isNew = live && shownNow > S.shownSteps;
+  S.shownSteps = shownNow;
+  $("reveal-sub").textContent = d.status === "done" ? "Final results." :
+    live ? (shownNow ? `${shownNow} of ${cur.total_steps} revealed.` : "Watch your host. Results appear here as they're announced.")
+         : "Results from earlier rounds.";
+  $("to-flight").classList.toggle("hidden", live || d.status === "done");
+  box.innerHTML = "";
+  const multi = (S.state && S.state.round_count > 1) || d.rounds.length > 1;
+  if (live && !cur) box.innerHTML = "";
+  [...d.rounds].reverse().forEach(r => {
+    if (multi) { const h = document.createElement("div"); h.className = "round-head"; h.textContent = `Round ${r.round}`; box.appendChild(h); }
+    [...r.steps].reverse().forEach((st, i) => {
+      const el = document.createElement("div");
+      const current = live && r.round === d.current_round && i === 0;
+      el.className = "step" + (current ? " current" + (isNew ? " enter" : "") : "");
+      el.innerHTML = st.kind === "wine" ? wineStep(st) : awardStep(st);
+      box.appendChild(el);
+    });
+  });
+  show("reveal");
+}
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function wineStep(st) {
+  const sub = [st.producer, st.appellation, st.vintage].filter(Boolean).map(esc).join(", ");
+  return `<div class="rank">${st.rank === 1 ? "The winner" : ordinal(st.rank) + " of " + st.of}</div>
+    <div class="wine-name">${esc(st.name)}</div>
+    <div class="muted">Wine ${st.pour_no}${sub ? ", " + sub : ""}</div>
+    <div class="row">
+      <div><small>Group</small><strong>${st.mean ?? "–"}</strong></div>
+      <div><small>You</small><strong>${st.yours ?? "–"}</strong></div>
+      ${st.price != null ? `<div><small>Price</small><strong>$${st.price}</strong></div>` : ""}
+    </div>`;
+}
+function awardStep(st) {
+  const you = st.member_id && S.me && st.member_id === S.me.id;
+  const who = st.member_name ? `<div class="award-who${you ? " you" : ""}">${you ? "You, " + esc(st.member_name) : esc(st.member_name)}</div>` : "";
+  return `<div class="award-title">${esc(st.title)}</div>${who}<p class="muted" style="margin:6px 0 0">${esc(st.detail)}</p>`;
+}
+function ordinal(n) { const s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
+
+// ---------- start ----------
+const urlCode = new URLSearchParams(location.search).get("code");
+const saved = urlCode || store.get("wt_code");
+if (saved) { $("code").value = saved; join(saved); } else show("join");
+</script>
+</body>
+</html>

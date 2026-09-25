@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Host console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Young+Serif&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root {
+    --bg: #F2EDEF; --card: #FBF8F9; --ink: #2B1A23; --muted: #6D5B65;
+    --garnet: #7B1F3C; --garnet-soft: #EBD5DC; --sage: #5E6E52; --sage-soft: #E1E7DA; --line: #D8CCD2;
+    --serif: "Young Serif", Georgia, serif;
+    --sans: "Atkinson Hyperlegible", system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1E1419; --card: #2A1D24; --ink: #F1E6EA; --muted: #B7A2AC;
+            --garnet: #D9738F; --garnet-soft: #4A2632; --sage: #A5B895; --sage-soft: #2E3628; --line: #43323B; }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans);
+               font-size: 17px; line-height: 1.45; -webkit-text-size-adjust: 100%; }
+  body { padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+  main { max-width: 560px; margin: 0 auto; padding: 18px 18px 110px; }
+  h1, h2, h3 { font-family: var(--serif); font-weight: 400; margin: 0 0 6px; line-height: 1.15; }
+  h1 { font-size: 28px; } h2 { font-size: 22px; margin-top: 8px; } h3 { font-size: 19px; }
+  p { margin: 0 0 12px; }
+  a { color: var(--garnet); }
+  .muted { color: var(--muted); }
+  .hidden { display: none !important; }
+  button, input, textarea, select { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 3px solid var(--garnet); outline-offset: 2px; }
+  .btn { display: block; width: 100%; padding: 14px; border: 0; border-radius: 12px;
+         background: var(--garnet); color: #fff; font-weight: 700; font-size: 17px; }
+  .btn.quiet { background: transparent; color: var(--garnet); border: 1.5px solid var(--garnet); }
+  .btn.small { display: inline-block; width: auto; padding: 8px 14px; font-size: 15px; }
+  .btn:disabled { opacity: .45; }
+  .btns { display: flex; gap: 10px; margin-top: 12px; }
+  .btns > * { flex: 1; }
+  input[type=text], input[type=number], input[type=date], input[type=password], textarea, select {
+    width: 100%; padding: 11px 12px; border: 1.5px solid var(--line); border-radius: 10px;
+    background: var(--card); font-size: 17px; }
+  textarea { min-height: 64px; resize: vertical; }
+  label { display: block; font-weight: 700; margin: 14px 0 5px; font-size: 15px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+  .error { color: var(--garnet); font-weight: 700; margin-top: 10px; min-height: 1em; }
+  .panel { background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 16px; margin: 14px 0; }
+  .topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .topbar a { font-size: 15px; }
+  .pill { display: inline-block; padding: 3px 10px; border-radius: 999px; background: var(--garnet-soft); font-size: 14px; font-weight: 700; }
+  .pill.done { background: var(--sage-soft); color: var(--sage); }
+
+  .tabs { position: fixed; left: 0; right: 0; bottom: 0; display: flex; background: var(--card);
+          border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); z-index: 5; }
+  .tabs button { flex: 1; padding: 14px 4px; border: 0; background: none; font-weight: 700; color: var(--muted); font-size: 15px; }
+  .tabs button[aria-selected=true] { color: var(--garnet); box-shadow: inset 0 3px 0 var(--garnet); }
+
+  .list { list-style: none; margin: 0; padding: 0; }
+  .list li { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+  .list li:last-child { border-bottom: 0; }
+  .list .n { font-family: var(--serif); font-size: 26px; width: 36px; text-align: center; flex: none; }
+  .list .grow { flex: 1; min-width: 0; }
+  .list .sub { color: var(--muted); font-size: 14px; }
+  .list button.link { border: 0; background: none; color: var(--garnet); font-weight: 700; padding: 6px; }
+  .ok { color: var(--sage); font-weight: 700; }
+
+  .join { display: flex; gap: 16px; align-items: center; }
+  .join .code { font-family: var(--serif); font-size: 40px; letter-spacing: .04em; }
+  #qr { background: #fff; padding: 8px; border-radius: 10px; flex: none; }
+  #qr img, #qr canvas { display: block; width: 116px !important; height: 116px !important; }
+
+  .step { border: 1.5px solid var(--line); border-radius: 14px; padding: 14px; margin-top: 10px; background: var(--card); }
+  .step.now { border-color: var(--garnet); }
+  .step.next { border-style: dashed; }
+  .step small { color: var(--muted); display: block; }
+  .step .t { font-family: var(--serif); font-size: 21px; }
+
+  .chips { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .chips button { padding: 10px 0; border-radius: 9px; border: 1.5px solid var(--line); background: var(--card); font-size: 15px; }
+  .chips button[aria-pressed=true] { background: var(--garnet); border-color: var(--garnet); color: #fff; font-weight: 700; }
+  .seg { display: flex; border: 1.5px solid var(--line); border-radius: 10px; overflow: hidden; margin-top: 10px; }
+  .seg button { flex: 1; padding: 10px; border: 0; background: var(--card); font-weight: 700; }
+  .seg button[aria-pressed=true] { background: var(--garnet); color: #fff; }
+  .total-line { font-family: var(--serif); font-size: 24px; margin-top: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th, td { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 700; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .scroll { overflow-x: auto; }
+</style>
+</head>
+<body>
+<main>
+
+<!-- PIN -->
+<section id="v-pin">
+  <h1>Host console</h1>
+  <p class="muted">Enter your host PIN.</p>
+  <input id="pin" type="password" inputmode="numeric" autocomplete="current-password">
+  <div class="error" id="pin-err"></div>
+  <button class="btn" id="pin-btn">Unlock</button>
+</section>
+
+<!-- EVENTS -->
+<section id="v-events" class="hidden">
+  <h1>Tastings</h1>
+  <div class="panel"><ul class="list" id="event-list"></ul></div>
+  <div class="panel">
+    <h2>Plan a tasting</h2>
+    <div id="new-event-form"></div>
+    <div class="error" id="new-err"></div>
+    <button class="btn" id="create-btn" style="margin-top:12px">Create tasting</button>
+  </div>
+</section>
+
+<!-- ONE EVENT -->
+<section id="v-event" class="hidden">
+  <div class="topbar"><a href="#" id="to-events">All tastings</a></div>
+  <h1 id="ev-title"></h1>
+  <p class="muted" id="ev-meta"></p>
+
+  <div id="tab-run">
+    <div class="panel">
+      <div class="join">
+        <div id="qr"></div>
+        <div><div class="muted">Join code</div><div class="code" id="ev-code"></div>
+          <div class="muted" style="font-size:14px;word-break:break-all" id="ev-url"></div></div>
+      </div>
+    </div>
+    <div class="panel" id="run-panel"></div>
+    <div class="error" id="run-err"></div>
+  </div>
+
+  <div id="tab-flight" class="hidden">
+    <div id="flight-rounds"></div>
+    <div class="panel" id="wine-editor">
+      <h2 id="wine-form-title">Add a wine</h2>
+      <div id="wine-form"></div>
+      <div class="error" id="wine-err"></div>
+      <div class="btns">
+        <button class="btn quiet hidden" id="wine-cancel">Cancel</button>
+        <button class="btn" id="wine-save">Add wine</button>
+      </div>
+      <button class="btn quiet hidden" id="wine-delete" style="margin-top:10px">Remove this wine</button>
+    </div>
+    <div class="panel">
+      <h2>Tasting details</h2>
+      <div id="event-form"></div>
+      <div class="error" id="event-err"></div>
+      <button class="btn quiet" id="event-save" style="margin-top:12px">Save details</button>
+    </div>
+  </div>
+
+  <div id="tab-paper" class="hidden">
+    <div class="panel">
+      <h2>Enter a paper sheet</h2>
+      <label for="paper-member">Whose sheet?</label>
+      <select id="paper-member"></select>
+      <div class="grid2" style="grid-template-columns:1fr auto;align-items:end">
+        <div><label for="paper-new">Or add someone new</label><input id="paper-new" type="text" placeholder="Name"></div>
+        <button class="btn quiet small" id="paper-add" style="margin-bottom:2px">Add</button>
+      </div>
+      <p class="muted" id="paper-note" style="margin-top:12px"></p>
+    </div>
+    <div class="panel" id="paper-wines"></div>
+    <div class="panel hidden" id="paper-entry">
+      <h2 id="paper-title"></h2>
+      <div class="seg" role="group" aria-label="How the sheet was scored">
+        <button id="mode-cat" aria-pressed="true">By category</button>
+        <button id="mode-total" aria-pressed="false">Total only</button>
+      </div>
+      <div id="paper-cats"></div>
+      <div id="paper-total-wrap" class="hidden"><label for="paper-total">Total out of 20</label>
+        <input id="paper-total" type="number" inputmode="decimal" min="0" max="20" step="0.5"></div>
+      <div class="total-line" id="paper-sum"></div>
+      <div class="grid2">
+        <div><label for="paper-guess">Price guess</label><input id="paper-guess" type="number" inputmode="decimal" min="0"></div>
+        <div><label for="paper-notes">Note</label><input id="paper-notes" type="text" maxlength="500"></div>
+      </div>
+      <div class="error" id="paper-err"></div>
+      <div class="btns">
+        <button class="btn quiet" id="paper-cancel">Cancel</button>
+        <button class="btn" id="paper-save">Save score</button>
+      </div>
+      <button class="btn quiet hidden" id="paper-remove" style="margin-top:10px">Remove this score</button>
+    </div>
+  </div>
+
+  <div id="tab-results" class="hidden">
+    <div class="panel">
+      <h2>Results</h2>
+      <p class="muted">Download every score to paste into the club spreadsheet.</p>
+      <button class="btn quiet" id="export-btn">Download scores (CSV)</button>
+    </div>
+    <div id="results-body"></div>
+  </div>
+</section>
+</main>
+
+<nav class="tabs hidden" id="tabs" role="tablist">
+  <button role="tab" data-tab="run" aria-selected="true">Run</button>
+  <button role="tab" data-tab="flight" aria-selected="false">Flight</button>
+  <button role="tab" data-tab="paper" aria-selected="false">Paper</button>
+  <button role="tab" data-tab="results" aria-selected="false">Results</button>
+</nav>
+
+<script>
+const CATS = { appearance: ["Appearance", 3], aroma: ["Aroma", 6], taste: ["Taste", 6], aftertaste: ["Aftertaste", 3], overall: ["Overall impression", 2] };
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const num = v => v == null || v === "" ? "" : Number(v);
+const H = { pin: null, ev: null, wines: [], state: null, members: [], scores: [], tab: "run", editing: null, paper: null, poll: null };
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+  del(k) { try { localStorage.removeItem(k); } catch {} },
+};
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, { ...opts, headers: { "Content-Type": "application/json", "X-Host-Pin": H.pin || "", ...(opts.headers || {}) } });
+  if (res.status === 401) { store.del("wt_host_pin"); show("pin"); throw new Error("Wrong host PIN"); }
+  if (opts.raw) { if (!res.ok) throw new Error("Download failed"); return res; }
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const d = body.detail;
+    throw new Error(typeof d === "string" ? d : Array.isArray(d) ? d.map(x => (x.loc || []).slice(-1)[0] + ": " + x.msg).join("; ") : "Something went wrong. Try again.");
+  }
+  return body;
+}
+const send = (path, method, body) => api(path, { method, body: JSON.stringify(body) });
+
+function show(view) {
+  for (const v of ["pin", "events", "event"]) $("v-" + v).classList.toggle("hidden", v !== view);
+  $("tabs").classList.toggle("hidden", view !== "event");
+  if (view !== "event") clearInterval(H.poll);
+  window.scrollTo(0, 0);
+}
+
+// ---------- form helper ----------
+function fields(container, defs, values = {}, px = "f") {
+  container.dataset.px = px;
+  container.innerHTML = defs.map(d => {
+    const v = values[d.key] ?? d.value ?? "";
+    const input = d.type === "select"
+      ? `<select id="${px}-${d.key}">${d.options.map(o => `<option value="${esc(o.value)}"${String(o.value) === String(v) ? " selected" : ""}>${esc(o.label)}</option>`).join("")}</select>`
+      : d.type === "textarea" ? `<textarea id="${px}-${d.key}">${esc(v)}</textarea>`
+      : `<input id="${px}-${d.key}" type="${d.type || "text"}" value="${esc(v)}"${d.step ? ` step="${d.step}"` : ""}${d.placeholder ? ` placeholder="${esc(d.placeholder)}"` : ""}${d.type === "number" ? ' inputmode="decimal"' : ""}>`;
+    return `<div${d.half ? ' class="half"' : ""}><label for="${px}-${d.key}">${esc(d.label)}</label>${input}</div>`;
+  }).join("");
+  // pair up half-width fields
+  const halves = [...container.querySelectorAll(".half")];
+  for (let i = 0; i + 1 < halves.length; i += 2) {
+    const g = document.createElement("div"); g.className = "grid2";
+    halves[i].before(g); g.append(halves[i], halves[i + 1]);
+  }
+}
+function read(defs, px = "f") {
+  const out = {};
+  for (const d of defs) {
+    const raw = $(px + "-" + d.key).value.trim();
+    out[d.key] = raw === "" ? null : (d.type === "number" || d.int) ? Number(raw) : raw;
+  }
+  return out;
+}
+
+// ---------- PIN ----------
+$("pin-btn").onclick = async () => {
+  H.pin = $("pin").value.trim();
+  try { await api("/api/host/check"); store.set("wt_host_pin", H.pin); loadEvents(); }
+  catch (e) { $("pin-err").textContent = e.message; }
+};
+$("pin").onkeydown = e => e.key === "Enter" && $("pin-btn").click();
+
+// ---------- events ----------
+const EVENT_FIELDS = () => [
+  { key: "name", label: "Name", placeholder: "October 2026 tasting" },
+  { key: "held_on", label: "Date", type: "date", half: true },
+  { key: "join_code", label: "Join code", placeholder: "Leave blank to generate", half: true },
+  { key: "theme", label: "Theme", placeholder: "Willamette Valley Pinot Noir" },
+  { key: "location", label: "Where", placeholder: "The winery" },
+];
+const STATUS_TEXT = { setup: "Planning", open: "Scoring open", locked: "Scoring closed", revealing: "Revealing", done: "Finished" };
+
+async function loadEvents() {
+  const events = await api("/api/host/events");
+  const ul = $("event-list");
+  ul.innerHTML = events.length ? "" : `<li class="muted">No tastings yet. Plan the first one below.</li>`;
+  for (const e of events) {
+    const li = document.createElement("li");
+    li.innerHTML = `<div class="grow"><b>${esc(e.name)}</b><div class="sub">${fmtDate(e.held_on)}, ${e.wine_count} wine${e.wine_count == 1 ? "" : "s"}${e.rounds > 1 ? ` in ${e.rounds} rounds` : ""}</div></div>
+      <span class="pill${e.status === "done" ? " done" : ""}">${STATUS_TEXT[e.status]}</span>`;
+    li.style.cursor = "pointer"; li.onclick = () => openEvent(e.id);
+    ul.appendChild(li);
+  }
+  fields($("new-event-form"), EVENT_FIELDS(), {}, "ne");
+  show("events");
+}
+$("create-btn").onclick = async () => {
+  $("new-err").textContent = "";
+  const v = read(EVENT_FIELDS(), "ne");
+  if (!v.name || !v.held_on) { $("new-err").textContent = "Add a name and a date."; return; }
+  try { const ev = await send("/api/host/events", "POST", v); openEvent(ev.id, "flight"); }
+  catch (e) { $("new-err").textContent = e.message; }
+};
+$("to-events").onclick = e => { e.preventDefault(); loadEvents(); };
+function fmtDate(d) { return d ? new Date(d + "T12:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : ""; }
+
+// ---------- one event ----------
+async function openEvent(id, tab = "run") {
+  H.editing = null; H.paper = null;
+  await refresh(id);
+  H.members = await api("/api/host/members");
+  const url = location.origin + "/?code=" + encodeURIComponent(H.ev.join_code);
+  $("ev-code").textContent = H.ev.join_code; $("ev-url").textContent = url;
+  $("qr").innerHTML = "";
+  if (window.QRCode) new QRCode($("qr"), { text: url, width: 232, height: 232, correctLevel: QRCode.CorrectLevel.M });
+  else $("qr").classList.add("hidden");
+  show("event");
+  setTab(tab);
+  clearInterval(H.poll);
+  H.poll = setInterval(async () => { if (H.tab === "run" && document.visibilityState === "visible") { await refresh(H.ev.id); renderRun(); } }, 5000);
+}
+async function refresh(id) {
+  const [d, scores] = await Promise.all([api("/api/host/events/" + id), api(`/api/host/events/${id}/scores`)]);
+  H.ev = d.event; H.wines = d.wines; H.state = d.state; H.scores = scores;
+  $("ev-title").textContent = H.ev.name;
+  $("ev-meta").textContent = [fmtDate(H.ev.held_on), H.ev.theme, H.ev.location].filter(Boolean).join(", ");
+}
+const rounds = () => Math.max(1, ...H.wines.map(w => w.round_no));
+const roundWines = r => H.wines.filter(w => w.round_no === r);
+const editable = r => r > H.ev.current_round || (r === H.ev.current_round && H.ev.status === "setup");
+
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => setTab(b.dataset.tab));
+function setTab(t) {
+  H.tab = t;
+  document.querySelectorAll("#tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
+  for (const x of ["run", "flight", "paper", "results"]) $("tab-" + x).classList.toggle("hidden", x !== t);
+  ({ run: renderRun, flight: renderFlight, paper: renderPaper, results: renderResults })[t]();
+  window.scrollTo(0, 0);
+}
+
+// ---------- Run ----------
+async function act(action) {
+  $("run-err").textContent = "";
+  try { await send(`/api/host/events/${H.ev.id}/action`, "POST", { action }); await refresh(H.ev.id); renderRun(); }
+  catch (e) { $("run-err").textContent = e.message; }
+}
+async function stepReveal(dir) {
+  $("run-err").textContent = "";
+  try { await api(`/api/host/events/${H.ev.id}/reveal/${dir}`, { method: "POST" }); await refresh(H.ev.id); renderRun(); }
+  catch (e) { $("run-err").textContent = e.message; }
+}
+async function renderRun() {
+  const p = $("run-panel"), ev = H.ev, r = ev.current_round, n = rounds(), rw = roundWines(r);
+  const head = `<h2>${n > 1 ? `Round ${r} of ${n}` : "The tasting"}</h2>
+    <p><span class="pill${ev.status === "done" ? " done" : ""}">${STATUS_TEXT[ev.status]}</span>
+    <span class="muted">${rw.length ? "Wines " + rw.map(w => w.pour_no).join(", ") : "No wines in this round yet"}</span></p>`;
+  if (ev.status === "setup") {
+    p.innerHTML = head + `<p class="muted">Guests can join now and pick their names. They'll see the wines once you open scoring.</p>
+      <button class="btn" id="a-open"${rw.length ? "" : " disabled"}>Open round ${r} scoring</button>
+      ${rw.length ? "" : `<p class="muted" style="margin-top:10px">Add wines on the Flight tab first.</p>`}`;
+    $("a-open").onclick = () => act("open");
+  } else if (ev.status === "open" || ev.status === "locked") {
+    const ids = new Set(rw.map(w => w.id));
+    const byMember = {};
+    for (const s of H.scores) if (ids.has(s.wine_id)) (byMember[s.member_id] ||= []).push(s);
+    const rows = H.members.filter(m => byMember[m.id]).map(m => {
+      const k = byMember[m.id].length, paper = byMember[m.id].some(s => s.entered_by === "host");
+      return `<li><div class="grow">${esc(m.name)}${paper ? ` <span class="sub">paper</span>` : ""}</div>
+        <span class="${k >= rw.length ? "ok" : "muted"}">${k >= rw.length ? "Done" : `${k} of ${rw.length}`}</span></li>`;
+    }).join("");
+    p.innerHTML = head + `<p><b>${H.state.finished} of ${H.state.tasters}</b> tasters have scored every wine in this round.</p>
+      <ul class="list">${rows || `<li class="muted">No scores yet.</li>`}</ul>` +
+      (ev.status === "open"
+        ? `<button class="btn" id="a-lock" style="margin-top:14px">Close scoring</button>`
+        : `<div class="btns"><button class="btn quiet" id="a-reopen">Reopen scoring</button><button class="btn" id="a-reveal">Start the reveal</button></div>
+           <p class="muted" style="margin-top:10px">Paper sheets can still go in until the reveal starts.</p>`);
+    if ($("a-lock")) $("a-lock").onclick = () => act("lock");
+    if ($("a-reopen")) $("a-reopen").onclick = () => act("reopen");
+    if ($("a-reveal")) $("a-reveal").onclick = () => act("reveal");
+  } else if (ev.status === "revealing") {
+    const d = await api(`/api/host/events/${ev.id}/reveal`);
+    const cur = d.rounds[r - 1], shown = cur.shown, total = cur.steps.length;
+    const nowStep = shown ? cur.steps[shown - 1] : null, nextStep = cur.steps[shown];
+    p.innerHTML = head + `<p>${shown} of ${total} shown on everyone's phone.</p>
+      ${nowStep ? `<div class="step now"><small>Showing now</small>${stepHtml(nowStep)}</div>` : ""}
+      ${nextStep ? `<div class="step next"><small>Up next</small>${stepHtml(nextStep)}</div>` : ""}
+      <div class="btns"><button class="btn quiet" id="a-back"${shown ? "" : " disabled"}>Back</button>
+      ${nextStep ? `<button class="btn" id="a-next">Show next</button>`
+        : r < n ? `<button class="btn" id="a-round">Open round ${r + 1}</button>`
+        : `<button class="btn" id="a-finish">Finish the tasting</button>`}</div>`;
+    $("a-back").onclick = () => stepReveal("back");
+    if ($("a-next")) $("a-next").onclick = () => stepReveal("next");
+    if ($("a-round")) $("a-round").onclick = () => act("next_round");
+    if ($("a-finish")) $("a-finish").onclick = () => act("finish");
+  } else {
+    p.innerHTML = head + `<p>Everyone can see the full results on their phones.</p><button class="btn quiet" id="a-results">See results</button>`;
+    $("a-results").onclick = () => setTab("results");
+  }
+}
+function stepHtml(st) {
+  if (st.kind === "wine")
+    return `<div class="t">${st.rank === 1 ? "Winner" : ordinal(st.rank) + " of " + st.of}: ${esc(st.name)}</div>
+      <div class="muted">Wine ${st.pour_no}, group average ${st.mean}${st.price != null ? `, $${st.price}` : ""}</div>`;
+  return `<div class="t">${esc(st.title)}${st.member_name ? ": " + esc(st.member_name) : ""}</div><div class="muted">${esc(st.detail)}</div>`;
+}
+function ordinal(n) { const s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
+
+// ---------- Flight ----------
+function wineFields() {
+  const maxR = rounds(), lastHasWines = roundWines(maxR).length > 0;
+  const opts = [];
+  for (let r = 1; r <= maxR + (lastHasWines ? 1 : 0); r++)
+    if (editable(r)) opts.push({ value: r, label: r > maxR || !roundWines(r).length ? `Round ${r} (new)` : `Round ${r}` });
+  if (H.editing && !opts.some(o => o.value === H.editing.round_no)) opts.unshift({ value: H.editing.round_no, label: `Round ${H.editing.round_no}` });
+  const twins = [{ value: "", label: "None" }, ...H.wines.filter(w => !H.editing || w.id !== H.editing.id).map(w => ({ value: w.pour_no, label: `Wine ${w.pour_no}, ${w.name}` }))];
+  return [
+    { key: "name", label: "Wine", placeholder: "Evenstadt Reserve" },
+    { key: "producer", label: "Producer", placeholder: "Domaine Serene", half: true },
+    { key: "appellation", label: "Appellation", placeholder: "Dundee Hills", half: true },
+    { key: "vintage", label: "Vintage", type: "number", half: true },
+    { key: "price", label: "Price ($)", type: "number", step: "0.01", half: true },
+    { key: "abv", label: "ABV (%)", type: "number", step: "0.1", half: true },
+    { key: "soil", label: "Soil", placeholder: "Jory (volcanic)", half: true },
+    { key: "round_no", label: "Round", type: "select", options: opts, int: true, half: true },
+    { key: "pour_no", label: "Pour number", type: "number", placeholder: "Next", half: true },
+    { key: "twin_of_pour", label: "Twin pour: same bottle as", type: "select", options: twins, int: true },
+    { key: "notes", label: "Notes for the reveal", type: "textarea" },
+  ];
+}
+function renderFlight() {
+  const box = $("flight-rounds"); box.innerHTML = "";
+  const n = rounds();
+  if (!H.wines.length) box.innerHTML = `<div class="panel"><h2>The flight</h2><p class="muted">No wines yet. Add them below any time before the tasting. Guests only see pour numbers until the reveal.</p></div>`;
+  for (let r = 1; r <= n && H.wines.length; r++) {
+    const rw = roundWines(r);
+    const panel = document.createElement("div"); panel.className = "panel";
+    panel.innerHTML = `<h2>${n > 1 ? `Round ${r}` : "The flight"}</h2>
+      ${editable(r) ? "" : `<p class="muted">Scoring has started, so pour numbers are fixed. Details can still be corrected.</p>`}
+      <ul class="list">${rw.map(w => `<li><div class="n">${w.pour_no}</div>
+        <div class="grow"><b>${esc(w.name)}</b><div class="sub">${[w.producer, w.appellation, w.vintage, w.price != null ? "$" + Number(w.price).toFixed(2) : null].filter(Boolean).map(esc).join(", ")}${w.twin_of ? `, twin of wine ${(H.wines.find(x => x.id === w.twin_of) || {}).pour_no}` : ""}</div></div>
+        <button class="link" data-id="${w.id}">Edit</button></li>`).join("") || `<li class="muted">No wines in this round.</li>`}</ul>`;
+    panel.querySelectorAll("button.link").forEach(b => b.onclick = () => editWine(H.wines.find(w => w.id === b.dataset.id)));
+    box.appendChild(panel);
+  }
+  editWine(H.editing, false);
+  fields($("event-form"), EVENT_FIELDS(), H.ev, "ed");
+}
+function editWine(w, scroll = true) {
+  H.editing = w || null;
+  const defs = wineFields();
+  const opts = defs.find(d => d.key === "round_no").options;
+  const withWines = opts.filter(o => roundWines(o.value).length);
+  const defaults = { round_no: (withWines.slice(-1)[0] || opts[0] || {}).value ?? H.ev.current_round };
+  fields($("wine-form"), defs, w ? { ...w, price: num(w.price), abv: num(w.abv),
+    twin_of_pour: w.twin_of ? (H.wines.find(x => x.id === w.twin_of) || {}).pour_no : "" } : defaults, "w");
+  $("wine-form-title").textContent = w ? `Edit wine ${w.pour_no}` : "Add a wine";
+  $("wine-save").textContent = w ? "Save wine" : "Add wine";
+  $("wine-cancel").classList.toggle("hidden", !w);
+  $("wine-delete").classList.toggle("hidden", !w || !editable(w.round_no));
+  $("wine-err").textContent = "";
+  if (!defs.find(d => d.key === "round_no").options.length) {
+    $("wine-err").textContent = "Every round has started. Finish this round, or add wines to a new round.";
+  }
+  if (scroll) $("wine-editor").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+$("wine-cancel").onclick = () => editWine(null, false);
+$("wine-save").onclick = async () => {
+  $("wine-err").textContent = "";
+  const v = read(wineFields(), "w");
+  if (!v.name) { $("wine-err").textContent = "Give the wine a name."; return; }
+  try {
+    if (H.editing) await send("/api/host/wines/" + H.editing.id, "PATCH", v);
+    else await send(`/api/host/events/${H.ev.id}/wines`, "POST", v);
+    H.editing = null; await refresh(H.ev.id); renderFlight();
+  } catch (e) { $("wine-err").textContent = e.message; }
+};
+$("wine-delete").onclick = async () => {
+  if (!H.editing || !confirm(`Remove wine ${H.editing.pour_no}, ${H.editing.name}?`)) return;
+  try { await api("/api/host/wines/" + H.editing.id, { method: "DELETE" }); H.editing = null; await refresh(H.ev.id); renderFlight(); }
+  catch (e) { $("wine-err").textContent = e.message; }
+};
+$("event-save").onclick = async () => {
+  $("event-err").textContent = "";
+  try { await send("/api/host/events/" + H.ev.id, "PATCH", read(EVENT_FIELDS(), "ed")); await openEvent(H.ev.id, "flight"); }
+  catch (e) { $("event-err").textContent = e.message; }
+};
+
+// ---------- Paper ----------
+function renderPaper() {
+  const sel = $("paper-member"), keep = sel.value;
+  sel.innerHTML = `<option value="">Choose a person</option>` + H.members.map(m => `<option value="${m.id}">${esc(m.name)}</option>`).join("");
+  sel.value = keep;
+  const r = H.ev.current_round, open = H.ev.status === "open" || H.ev.status === "locked";
+  $("paper-note").textContent = open ? `Entering scores for round ${r}. Pick a person, then a wine.`
+    : H.ev.status === "setup" ? "Paper scores can go in once you open scoring."
+    : "Scores are frozen while results are shown. Open the next round to enter more.";
+  $("paper-entry").classList.add("hidden");
+  const box = $("paper-wines");
+  const m = sel.value;
+  if (!open || !m) { box.classList.add("hidden"); return; }
+  box.classList.remove("hidden");
+  const mine = Object.fromEntries(H.scores.filter(s => s.member_id === m).map(s => [s.wine_id, s]));
+  box.innerHTML = `<h3>${esc(H.members.find(x => x.id === m).name)}, round ${r}</h3><ul class="list">` +
+    roundWines(r).map(w => {
+      const s = mine[w.id];
+      return `<li><div class="n">${w.pour_no}</div><div class="grow">${s ? `<b>${Number(s.total)}</b> <span class="sub">${s.entered_by === "host" ? "from paper" : "on their phone"}</span>` : `<span class="muted">Not scored</span>`}</div>
+        <button class="link" data-id="${w.id}">${s ? "Edit" : "Enter"}</button></li>`;
+    }).join("") + "</ul>";
+  box.querySelectorAll("button.link").forEach(b => b.onclick = () => paperEntry(roundWines(r).find(w => w.id === b.dataset.id), mine[b.dataset.id]));
+}
+$("paper-member").onchange = renderPaper;
+$("paper-add").onclick = async () => {
+  const name = $("paper-new").value.trim(); if (!name) return;
+  try {
+    const m = await send("/api/members", "POST", { name });
+    H.members = await api("/api/host/members"); $("paper-new").value = "";
+    renderPaper(); $("paper-member").value = m.id; renderPaper();
+  } catch (e) { $("paper-note").textContent = e.message; }
+};
+function paperEntry(w, s) {
+  H.paper = { wine: w, draft: {}, mode: s && s.aroma == null ? "total" : "cat", existing: s };
+  for (const c in CATS) H.paper.draft[c] = s && s[c] != null ? Number(s[c]) : null;
+  $("paper-title").textContent = `Wine ${w.pour_no}`;
+  $("paper-total").value = s ? Number(s.total) : "";
+  $("paper-guess").value = s ? num(s.price_guess) : "";
+  $("paper-notes").value = s && s.note || "";
+  $("paper-err").textContent = "";
+  $("paper-remove").classList.toggle("hidden", !s);
+  const box = $("paper-cats"); box.innerHTML = "";
+  for (const c in CATS) {
+    const [label, max] = CATS[c];
+    const wrap = document.createElement("div");
+    wrap.innerHTML = `<label>${label} <span class="muted">out of ${max}</span></label><div class="chips"></div>`;
+    const chips = wrap.querySelector(".chips");
+    for (let v = 0; v <= max; v += 0.5) {
+      const b = document.createElement("button");
+      b.textContent = v % 1 ? (Math.floor(v) || "") + "½" : v;
+      b.setAttribute("aria-pressed", H.paper.draft[c] === v);
+      b.onclick = () => { H.paper.draft[c] = v; chips.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b)); paperSum(); };
+      chips.appendChild(b);
+    }
+    box.appendChild(wrap);
+  }
+  setMode(H.paper.mode);
+  $("paper-entry").classList.remove("hidden");
+  $("paper-entry").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function setMode(mode) {
+  H.paper.mode = mode;
+  $("mode-cat").setAttribute("aria-pressed", mode === "cat");
+  $("mode-total").setAttribute("aria-pressed", mode === "total");
+  $("paper-cats").classList.toggle("hidden", mode !== "cat");
+  $("paper-total-wrap").classList.toggle("hidden", mode !== "total");
+  paperSum();
+}
+$("mode-cat").onclick = () => setMode("cat");
+$("mode-total").onclick = () => setMode("total");
+function paperSum() {
+  if (H.paper.mode !== "cat") { $("paper-sum").textContent = ""; return; }
+  const t = Object.values(H.paper.draft).reduce((a, v) => a + (v || 0), 0);
+  $("paper-sum").textContent = `${t} of 20`;
+}
+$("paper-cancel").onclick = () => $("paper-entry").classList.add("hidden");
+$("paper-save").onclick = async () => {
+  $("paper-err").textContent = "";
+  const body = { event_id: H.ev.id, wine_id: H.paper.wine.id, member_id: $("paper-member").value,
+    price_guess: $("paper-guess").value === "" ? null : Number($("paper-guess").value),
+    note: $("paper-notes").value.trim() || null };
+  if (H.paper.mode === "cat") {
+    const missing = Object.keys(CATS).filter(c => H.paper.draft[c] == null);
+    if (missing.length) { $("paper-err").textContent = "Score " + missing.map(c => CATS[c][0].toLowerCase()).join(", ") + ", or switch to Total only."; return; }
+    Object.assign(body, H.paper.draft);
+  } else {
+    if ($("paper-total").value === "") { $("paper-err").textContent = "Enter the total from the sheet."; return; }
+    body.total = Number($("paper-total").value);
+  }
+  try { await send("/api/host/scores", "PUT", body); await refresh(H.ev.id); renderPaper(); }
+  catch (e) { $("paper-err").textContent = e.message; }
+};
+$("paper-remove").onclick = async () => {
+  if (!confirm("Remove this score?")) return;
+  try { await api(`/api/host/scores/${H.ev.id}/${H.paper.wine.id}/${$("paper-member").value}`, { method: "DELETE" }); await refresh(H.ev.id); renderPaper(); }
+  catch (e) { $("paper-err").textContent = e.message; }
+};
+
+// ---------- Results ----------
+async function renderResults() {
+  const box = $("results-body"); box.innerHTML = "";
+  const d = await api(`/api/host/events/${H.ev.id}/reveal`);
+  const any = d.rounds.some(r => r.steps.length);
+  if (!any) { box.innerHTML = `<div class="panel"><p class="muted">Results appear here once scores come in.</p></div>`; return; }
+  for (const r of d.rounds) {
+    if (!r.steps.length) continue;
+    const wines = r.steps.filter(s => s.kind === "wine").sort((a, b) => a.rank - b.rank);
+    const awards = r.steps.filter(s => s.kind === "award");
+    const panel = document.createElement("div"); panel.className = "panel";
+    panel.innerHTML = `<h2>${d.rounds.length > 1 ? `Round ${r.round}` : "Ranking"}</h2>
+      <p class="muted">${r.shown >= r.steps.length ? "Revealed" : r.shown ? `${r.shown} of ${r.steps.length} revealed` : "Not revealed yet. Only you can see this."}</p>
+      <div class="scroll"><table><thead><tr><th>#</th><th>Wine</th><th class="num">Avg</th><th class="num">Med</th><th class="num">SD</th><th class="num">n</th></tr></thead><tbody>
+      ${wines.map(w => `<tr><td>${w.rank}</td><td>${w.pour_no}. ${esc(w.name)}</td><td class="num">${w.mean ?? ""}</td><td class="num">${w.median ?? ""}</td><td class="num">${w.sd ?? ""}</td><td class="num">${w.n ?? ""}</td></tr>`).join("")}
+      </tbody></table></div>
+      ${awards.length ? `<ul class="list" style="margin-top:10px">${awards.map(a => `<li><div class="grow"><b>${esc(a.title)}</b>${a.member_name ? ": " + esc(a.member_name) : ""}<div class="sub">${esc(a.detail)}</div></div></li>`).join("")}</ul>` : ""}`;
+    box.appendChild(panel);
+  }
+}
+$("export-btn").onclick = async () => {
+  try {
+    const res = await api(`/api/host/events/${H.ev.id}/export.csv`, { raw: true });
+    const url = URL.createObjectURL(await res.blob());
+    const a = document.createElement("a"); a.href = url;
+    a.download = `${H.ev.name.replace(/[^\w-]+/g, "_")}.csv`; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  } catch (e) { alert(e.message); }
+};
+
+// ---------- start ----------
+H.pin = store.get("wt_host_pin");
+if (H.pin) api("/api/host/check").then(loadEvents).catch(() => show("pin")); else show("pin");
+</script>
+</body>
+</html>
